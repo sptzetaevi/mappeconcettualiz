@@ -125,6 +125,7 @@
 <div id="app">
   <header>
     <button class="btn" id="btnNew">+ Nuovo pop</button>
+    <button class="btn" id="btnMove">Sposta</button>
     <button class="btn" id="btnLink">Collega</button>
     <button class="btn danger" id="btnDelete">Elimina</button>
 
@@ -160,6 +161,7 @@
   var btnExportJson = document.getElementById("btnExportJson");
   var btnExportHtml = document.getElementById("btnExportHtml");
   var btnImport = document.getElementById("btnImport");
+  var btnMove = document.getElementById("btnMove");
   var fileInput = document.getElementById("fileInput");
 
   function setStatus(msg){ statusEl.textContent = msg; }
@@ -217,6 +219,7 @@
 
   function setLinkMode(on) {
     if (on) {
+      if (moveMode) setMoveMode(false);
       if (!selectedBoxId) { setStatus("Seleziona un box prima di collegare."); return; }
       linkingFrom = selectedBoxId;
       btnLink.classList.add("active");
@@ -233,7 +236,26 @@
       setStatus("Pronto");
     }
   }
+  function setMoveMode(on) {
+  moveMode = !!on;
 
+  if (moveMode) {
+    // se attivo sposta: disattivo collega
+    setLinkMode(false);
+    btnMove.classList.add("active");
+    setStatus("Modalita sposta: trascina i box.");
+  } else {
+    btnMove.classList.remove("active");
+    setStatus("Pronto");
+  }
+
+  // quando sposta è attivo, blocchiamo l'editing del testo
+  var tas = document.querySelectorAll(".pop .body");
+  for (var i = 0; i < tas.length; i++) {
+    tas[i].readOnly = moveMode;
+  }
+}
+  
   function autoGrow(ta) {
     ta.style.height = "auto";
     ta.style.height = ta.scrollHeight + "px";
@@ -398,9 +420,9 @@
       // drag solo fuori textarea
       var dragging = false, sx=0, sy=0, ox=0, oy=0;
 
-      el.addEventListener("mousedown", function (e) {
+      el.addEventListener("pointerdown", function (e) {
         if (e.button !== 0) return;
-        if (e.target && e.target.tagName && e.target.tagName.toLowerCase() === "textarea") return;
+        if (!moveMode && e.target && e.target.tagName && e.target.tagName.toLowerCase() === "textarea") return;
 
         e.stopPropagation();
         setLinkMode(false);
@@ -423,8 +445,8 @@
 
         function onUp() {
           dragging = false;
-          window.removeEventListener("mousemove", onMove);
-          window.removeEventListener("mouseup", onUp);
+          window.addEventListener("pointermove", onMove);
+          window.addEventListener("pointerup", onUp);
         }
 
         window.addEventListener("mousemove", onMove);
