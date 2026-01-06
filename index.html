@@ -71,6 +71,7 @@
       display:flex;
       align-items:center;
       justify-content:center;
+      touch-action: none;
     }
     .pop:active{ cursor:grabbing; }
     .pop.selected{ outline:3px solid rgba(0,120,255,.25); }
@@ -422,37 +423,45 @@
       var dragging = false, sx=0, sy=0, ox=0, oy=0;
 
       el.addEventListener("pointerdown", function (e) {
-        if (e.button !== 0) return;
-        if (!moveMode && e.target && e.target.tagName && e.target.tagName.toLowerCase() === "textarea") return;
+      // Su touch spesso e.button non è 0: quindi non blocchiamo
+         if (e.pointerType === "mouse" && e.button !== 0) return;
 
-        e.stopPropagation();
-        setLinkMode(false);
-        selectBox(p.id);
+       // Se NON siamo in modalita sposta e sto toccando la textarea, non trascinare
+         if (!moveMode && e.target && e.target.tagName && e.target.tagName.toLowerCase() === "textarea") return;
 
-        dragging = true;
-        sx = e.clientX; sy = e.clientY;
-        ox = p.x; oy = p.y;
+         e.preventDefault();     // evita scroll/zoom mentre trascini
+         e.stopPropagation();
 
-        function onMove(ev) {
-          if (!dragging) return;
-          var dx = ev.clientX - sx;
-          var dy = ev.clientY - sy;
-          var pos = clampToBoard(ox + dx, oy + dy);
-          p.x = pos.x; p.y = pos.y;
-          el.style.left = p.x + "px";
-          el.style.top  = p.y + "px";
-          renderLinks();
-        }
+         setLinkMode(false);
+         selectBox(p.id);
 
-        function onUp() {
-          dragging = false;
-          window.addEventListener("pointermove", onMove);
-          window.addEventListener("pointerup", onUp);
-        }
+         dragging = true;
+         sx = e.clientX; sy = e.clientY;
+         ox = p.x; oy = p.y;
 
-        window.addEventListener("mousemove", onMove);
-        window.addEventListener("mouseup", onUp);
-      });
+         // cattura il puntatore: fondamentale su mobile
+         if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
+
+         function onMove(ev) {
+           if (!dragging) return;
+           var dx = ev.clientX - sx;
+           var dy = ev.clientY - sy;
+           var pos = clampToBoard(ox + dx, oy + dy);
+           p.x = pos.x; p.y = pos.y;
+           el.style.left = p.x + "px";
+           el.style.top  = p.y + "px";
+           renderLinks();
+         }
+
+         function onUp(ev) {
+           dragging = false;
+           window.removeEventListener("pointermove", onMove);
+           window.removeEventListener("pointerup", onUp);
+         }
+
+          window.addEventListener("pointermove", onMove, { passive:false });
+          window.addEventListener("pointerup", onUp, { passive:true });
+});
 
       board.appendChild(el);
     });
@@ -592,6 +601,7 @@ function parseImportedText(text) {
   });
   btnLink.addEventListener("click", function () { setLinkMode(!linkingFrom); });
   btnDelete.addEventListener("click", deleteSelected);
+  btnMove.addEventListener("click", function () { setMoveMode(!moveMode); });
 
   btnPdf.addEventListener("click", exportPDF);
   btnExportJson.addEventListener("click", exportJSON);
