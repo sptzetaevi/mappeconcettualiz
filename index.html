@@ -282,12 +282,19 @@
   }
 
   function addLink(from, to) {
-    if (!from || !to || from === to) return;
-    for (var i=0;i<links.length;i++) {
-      if (links[i].from === from && links[i].to === to) return;
-    }
-    links.push({ id: uid(), from: from, to: to });
-  }
+   if (!from || !to || from === to) return;
+
+   for (var i = 0; i < links.length; i++) {
+     if (links[i].from === from && links[i].to === to) return;
+   }
+
+   links.push({
+     id: uid(),
+     from: from,
+     to: to,
+     label: ""   // 👈 etichetta del connettore
+   });
+}
 
   function deleteSelected() {
     if (selectedLinkId) {
@@ -352,6 +359,44 @@
     marker.appendChild(path);
     defs.appendChild(marker);
     svg.appendChild(defs);
+    // --- etichetta del connettore (solo testo, senza riquadro) ---
+    if (l.label && l.label.trim() !== "") {
+    var txt = document.createElementNS(NS, "text");
+
+  // centro della linea
+    var tx = (p1.x + p2.x) / 2;
+    var ty = (p1.y + p2.y) / 2;
+
+    txt.setAttribute("x", tx);
+    txt.setAttribute("y", ty);
+    txt.setAttribute("text-anchor", "middle");
+    txt.setAttribute("dominant-baseline", "middle");
+
+    txt.setAttribute("fill", "#000");
+    txt.setAttribute("font-size", "13");
+    txt.style.cursor = "pointer";
+    txt.style.pointerEvents = "auto";
+
+    txt.textContent = l.label;
+    txt.dataset.linkid = l.id;
+
+  // click sull'etichetta per modificarla
+    txt.addEventListener("mousedown", function (e) {
+      e.stopPropagation();
+      var id = this.dataset.linkid;
+
+      for (var k = 0; k < links.length; k++) {
+        if (links[k].id === id) {
+          var nuovo = prompt("Etichetta del collegamento:", links[k].label || "");
+          if (nuovo !== null) links[k].label = nuovo;
+          break;
+        }
+      }
+    renderLinks();
+  });
+
+  svg.appendChild(txt);
+}
 
     links.forEach(function (l) {
       var A = getPopBoxInBoardCoords(l.from);
@@ -423,10 +468,17 @@
       // click ovunque nel box: se in modalita collega, crea link
       el.addEventListener("click", function () {
         if (linkingFrom && linkingFrom !== p.id) {
-          addLink(linkingFrom, p.id);
-          setLinkMode(false);
-          renderLinks();
-          setStatus("Collegamento creato.");
+         addLink(linkingFrom, p.id);
+
+         // chiedi subito l'etichetta
+         var last = links[links.length - 1];
+         var t = prompt("Etichetta del collegamento:", "");
+         if (t !== null) last.label = t;
+
+         setLinkMode(false);
+         renderLinks();
+         setStatus("Collegamento creato.");
+
         }
       });
 
