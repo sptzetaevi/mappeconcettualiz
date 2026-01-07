@@ -394,7 +394,7 @@
 
       svg.appendChild(line);
 
-      // ---------- ETICHETTA (solo testo, senza cornice) ----------
+            // ---------- ETICHETTA (solo testo, senza cornice) ----------
       if (l.label && l.label.trim() !== "") {
         var txt = document.createElementNS(NS, "text");
 
@@ -432,7 +432,32 @@
           renderLinks();
         });
 
+        // --- SFONDO dietro il testo (copre la linea sotto) ---
+        // 1) aggiungo temporaneamente il testo per misurarlo
         svg.appendChild(txt);
+        var bb = txt.getBBox();
+
+        var padX = 6;
+        var padY = 3;
+
+        var bg = document.createElementNS(NS, "rect");
+        bg.setAttribute("x", bb.x - padX);
+        bg.setAttribute("y", bb.y - padY);
+        bg.setAttribute("width", bb.width + padX * 2);
+        bg.setAttribute("height", bb.height + padY * 2);
+        bg.setAttribute("rx", 4);
+        bg.setAttribute("ry", 4);
+
+        // stesso colore dello sfondo della tua app (nel CSS: --bg:#f6f7fb)
+        bg.setAttribute("fill", "#f6f7fb");
+        bg.setAttribute("stroke", "none");
+        bg.style.pointerEvents = "none";
+
+        // 2) rimetto ordine: prima bg, poi txt
+        svg.removeChild(txt);
+        svg.appendChild(bg);
+        svg.appendChild(txt);
+      }
       }
     });
   }
