@@ -119,7 +119,15 @@
       #board { background:#fff !important; overflow:visible !important; }
       .ghost { display:none !important; }
     }
-  
+
+   #mapTitle {
+     margin-left: auto;   /* lo spinge a destra nel header */
+     font-size: 22px;     /* dimensione del testo */
+     font-weight: 800;    /* molto in grassetto */
+     letter-spacing: 2px;/* spazio tra le lettere */
+     user-select: none;  /* non selezionabile */
+    }
+
   </style>
 </head>
 
@@ -142,6 +150,7 @@
       Doppio click = crea • Trascina = sposta • <kbd>L</kbd>/Collega = collega • click linea = seleziona • <kbd>CANC</kbd>/Elimina = elimina • <kbd>ESC</kbd> = annulla
     </span>
     <span class="status" id="status">Avvio...</span>
+    <span id="mapTitle">MAPPA MENTALE</span>
   </header>
 
   <div id="board">
