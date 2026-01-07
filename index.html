@@ -469,7 +469,16 @@
         bg.setAttribute("ry", 4);
 
         // stesso colore dello sfondo della tua app (nel CSS: --bg:#f6f7fb)
-        bg.setAttribute("fill", "#f6f7fb");
+        // colore di default (schermo)
+        var labelBg = "#f6f7fb";
+
+        // se siamo in stampa, usa bianco
+        if (window.matchMedia && window.matchMedia("print").matches) {
+        labelBg = "#ffffff";
+        }
+
+        bg.setAttribute("fill", labelBg);
+
         bg.setAttribute("stroke", "none");
         bg.style.pointerEvents = "none";
 
