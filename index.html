@@ -342,6 +342,8 @@
     while (svg.firstChild) svg.removeChild(svg.firstChild);
 
     var NS = "http://www.w3.org/2000/svg";
+
+    // defs + freccia
     var defs = document.createElementNS(NS, "defs");
     var marker = document.createElementNS(NS, "marker");
     marker.setAttribute("id", "arrow");
@@ -359,44 +361,81 @@
     marker.appendChild(path);
     defs.appendChild(marker);
     svg.appendChild(defs);
-    // --- etichetta del connettore (solo testo, senza riquadro) ---
-    if (l.label && l.label.trim() !== "") {
-    var txt = document.createElementNS(NS, "text");
 
-  // centro della linea
-    var tx = (p1.x + p2.x) / 2;
-    var ty = (p1.y + p2.y) / 2;
+    links.forEach(function (l) {
+      var A = getPopBoxInBoardCoords(l.from);
+      var B = getPopBoxInBoardCoords(l.to);
+      if (!A || !B) return;
 
-    txt.setAttribute("x", tx);
-    txt.setAttribute("y", ty);
-    txt.setAttribute("text-anchor", "middle");
-    txt.setAttribute("dominant-baseline", "middle");
+      var dx = B.cx - A.cx;
+      var dy = B.cy - A.cy;
 
-    txt.setAttribute("fill", "#000");
-    txt.setAttribute("font-size", "13");
-    txt.style.cursor = "pointer";
-    txt.style.pointerEvents = "auto";
+      var p1 = edgePoint(A.cx, A.cy, A.hw, A.hh, dx, dy);
+      var p2 = edgePoint(B.cx, B.cy, B.hw, B.hh, -dx, -dy);
 
-    txt.textContent = l.label;
-    txt.dataset.linkid = l.id;
+      // linea
+      var line = document.createElementNS(NS, "line");
+      line.setAttribute("x1", p1.x);
+      line.setAttribute("y1", p1.y);
+      line.setAttribute("x2", p2.x);
+      line.setAttribute("y2", p2.y);
+      line.setAttribute("marker-end", "url(#arrow)");
+      line.classList.add("linkLine");
+      line.dataset.linkid = l.id;
 
-  // click sull'etichetta per modificarla
-    txt.addEventListener("mousedown", function (e) {
-      e.stopPropagation();
-      var id = this.dataset.linkid;
+      if (l.id === selectedLinkId) line.classList.add("selected");
 
-      for (var k = 0; k < links.length; k++) {
-        if (links[k].id === id) {
-          var nuovo = prompt("Etichetta del collegamento:", links[k].label || "");
-          if (nuovo !== null) links[k].label = nuovo;
-          break;
-        }
+      line.addEventListener("mousedown", function (e) {
+        e.stopPropagation();
+        setLinkMode(false);
+        selectLink(l.id);
+        setStatus("Link selezionato.");
+      });
+
+      svg.appendChild(line);
+
+      // ---------- ETICHETTA (solo testo, senza cornice) ----------
+      if (l.label && l.label.trim() !== "") {
+        var txt = document.createElementNS(NS, "text");
+
+        // centro della linea
+        var tx = (p1.x + p2.x) / 2;
+        var ty = (p1.y + p2.y) / 2;
+
+        // un pelo sopra la linea (così non si sovrappone)
+        ty = ty - 8;
+
+        txt.setAttribute("x", tx);
+        txt.setAttribute("y", ty);
+        txt.setAttribute("text-anchor", "middle");
+        txt.setAttribute("dominant-baseline", "middle");
+        txt.setAttribute("fill", "#000");
+        txt.setAttribute("font-size", "13");
+        txt.style.cursor = "pointer";
+        txt.style.pointerEvents = "auto";
+
+        txt.textContent = l.label;
+        txt.dataset.linkid = l.id;
+
+        // click sull'etichetta per modificarla
+        txt.addEventListener("mousedown", function (e) {
+          e.stopPropagation();
+          var id = this.dataset.linkid;
+
+          for (var k = 0; k < links.length; k++) {
+            if (links[k].id === id) {
+              var nuovo = prompt("Etichetta del collegamento:", links[k].label || "");
+              if (nuovo !== null) links[k].label = nuovo;
+              break;
+            }
+          }
+          renderLinks();
+        });
+
+        svg.appendChild(txt);
       }
-    renderLinks();
-  });
-
-  svg.appendChild(txt);
-}
+    });
+  }
 
     links.forEach(function (l) {
       var A = getPopBoxInBoardCoords(l.from);
