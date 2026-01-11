@@ -12,26 +12,14 @@
 
     /* HEADER con wrapper interno + maniglia */
     header{
-      position:sticky;
-      top:0;
-      z-index:10;
-      background:#fff;
-      border-bottom:1px solid rgba(0,0,0,.08);
-      box-shadow:0 2px 6px rgba(0,0,0,.06);
-      box-sizing:border-box;
+      position:sticky; top:0; z-index:10;
+      background:#fff; border-bottom:1px solid rgba(0,0,0,.08);
     }
     .headerInner{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-      padding:10px 12px;
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center; padding:10px 12px;
     }
     .headerHandle{
-      width:100%;
-      height:8px;
-      background:rgba(0,0,0,.20);
-      cursor:pointer;
+      width:100%; height:8px; background:rgba(0,0,0,.20); cursor:pointer;
     }
     header.collapsed .headerInner{
       display:none;
@@ -149,7 +137,7 @@
       border:0;
       outline:0;
       resize:none;
-      overflow-y:auto;      /* <-- così se qualcosa va storto puoi scorrere */
+      overflow:visible;      /* <-- niente barre di scorrimento, testo sempre visibile */
       background:transparent;
       color:inherit;
       font-size:14px;
@@ -282,9 +270,10 @@
       <button class="btn tiny" id="btnZoomOut">-</button>
 
       <span class="hint">
-        Doppio click = crea box • Trascina = sposta • click linea = seleziona (per eliminare) • doppio click linea = modifica • <kbd>CANC</kbd>/Elimina = elimina • <kbd>ESC</kbd> = annulla collega
+        Doppio click = crea • Trascina = sposta • click linea = seleziona • <kbd>CANC</kbd>/Elimina = elimina • <kbd>ESC</kbd> = annulla
       </span>
 
+      <!-- CONTROLLI TESTO POP SELEZIONATO -->
       <div class="textControls">
         <span>Testo:</span>
         <input type="color" id="txtColor" value="#000000" disabled>
@@ -296,6 +285,7 @@
       <span class="status" id="status">Avvio...</span>
       <span id="mapTitle">MAPPA MENTALE</span>
 
+      <!-- LOGO/LINK ALLA PAGINA PRINCIPALE ANTIMAPPIFICIO -->
       <a class="homeLogo"
          href="https://sptzetaevi.github.io/antimappificio/"
          title="Torna alla pagina principale ANTIMAPPIFICIO">
@@ -303,6 +293,7 @@
       </a>
     </div>
 
+    <!-- maniglia sempre visibile per mostra/nascondi -->
     <div class="headerHandle" id="headerHandle" title="Mostra/nascondi strumenti"></div>
   </header>
 
@@ -327,12 +318,14 @@
   var headerHandle = document.getElementById("headerHandle");
   var headerCollapsed = false;
 
-  headerHandle.addEventListener("click", function(e){
-    e.stopPropagation();
-    headerCollapsed = !headerCollapsed;
-    if (headerCollapsed) header.classList.add("collapsed");
-    else header.classList.remove("collapsed");
-  });
+  if (headerHandle) {
+    headerHandle.addEventListener("click", function(e){
+      e.stopPropagation();
+      headerCollapsed = !headerCollapsed;
+      if (headerCollapsed) header.classList.add("collapsed");
+      else header.classList.remove("collapsed");
+    });
+  }
 
   var btnNew = document.getElementById("btnNew");
   var btnLink = document.getElementById("btnLink");
@@ -356,7 +349,7 @@
   function boardRect(){ return board.getBoundingClientRect(); }
 
   var pops = [];   // {id,x,y,text,color,size,bold}
-  var links = [];  // {id,from,to,end,shape,curveDir}
+  var links = [];  // {id,from,to,end,shape}
   var selectedBoxId = null;
   var selectedLinkId = null;
   var linkingFrom = null;
@@ -499,119 +492,6 @@
     renderLinks();
   }
 
-  var linkPreset = { end: "arrow", shape: "straight", curveDir: 1 };
-  var linkModal = null;
-
-  function ensureLinkModal() {
-    if (linkModal) return;
-
-    linkModal = document.createElement("div");
-    linkModal.className = "modalOverlay";
-    linkModal.innerHTML =
-      '<div class="modal" role="dialog" aria-modal="true">' +
-        '<h3>Opzioni collegamento</h3>' +
-        '<div class="row">' +
-          '<label><input type="radio" name="linkEnd" value="none"> Linea semplice</label>' +
-          '<label><input type="radio" name="linkEnd" value="arrow"> Freccia</label>' +
-        '</div>' +
-        '<div class="row">' +
-          '<label><input type="radio" name="linkShape" value="straight"> Retta</label>' +
-          '<label><input type="radio" name="linkShape" value="curve"> Curva</label>' +
-        '</div>' +
-        '<div class="row" data-curve-row>' +
-          '<label><input type="radio" name="curveDir" value="down"> Curva verso il basso</label>' +
-          '<label><input type="radio" name="curveDir" value="up"> Curva verso l\'alto</label>' +
-        '</div>' +
-        '<div class="actions">' +
-          '<button class="btn" id="linkOptCancel">Annulla</button>' +
-          '<button class="btn" id="linkOptOk">OK</button>' +
-        '</div>' +
-      '</div>';
-
-    document.body.appendChild(linkModal);
-
-    var shapeRadios = linkModal.querySelectorAll('input[name="linkShape"]');
-    var curveRadios = linkModal.querySelectorAll('input[name="curveDir"]');
-    var curveLabels = [];
-    curveRadios.forEach(function(r){
-      if (r.parentElement) curveLabels.push(r.parentElement);
-    });
-
-    function updateCurveRadiosDisabled() {
-      var shapeVal = (linkModal.querySelector('input[name="linkShape"]:checked') || {}).value;
-      var disabled = shapeVal !== 'curve';
-
-      curveRadios.forEach(function(r){
-        r.disabled = disabled;
-      });
-      curveLabels.forEach(function(lbl){
-        lbl.style.opacity = disabled ? 0.5 : 1;
-      });
-    }
-
-    shapeRadios.forEach(function(r){
-      r.addEventListener('change', updateCurveRadiosDisabled);
-    });
-
-    linkModal._updateCurveRadiosDisabled = updateCurveRadiosDisabled;
-  }
-
-  function openLinkOptions(done) {
-    ensureLinkModal();
-
-    var endRadio = linkModal.querySelector('input[name="linkEnd"][value="' + linkPreset.end + '"]');
-    var shapeRadio = linkModal.querySelector('input[name="linkShape"][value="' + linkPreset.shape + '"]');
-    if (endRadio) endRadio.checked = true;
-    if (shapeRadio) shapeRadio.checked = true;
-
-    var curveRadioVal = (linkPreset.curveDir === -1) ? "up" : "down";
-    var curveRadio = linkModal.querySelector('input[name="curveDir"][value="' + curveRadioVal + '"]');
-    if (curveRadio) curveRadio.checked = true;
-
-    if (typeof linkModal._updateCurveRadiosDisabled === "function") {
-      linkModal._updateCurveRadiosDisabled();
-    }
-
-    linkModal.style.display = "flex";
-
-    function close() {
-      linkModal.style.display = "none";
-      okBtn.onclick = null;
-      cancelBtn.onclick = null;
-      linkModal.onclick = null;
-    }
-
-    var okBtn = linkModal.querySelector("#linkOptOk");
-    var cancelBtn = linkModal.querySelector("#linkOptCancel");
-
-    okBtn.onclick = function () {
-      var endVal = (linkModal.querySelector('input[name="linkEnd"]:checked') || {}).value || "arrow";
-      var shapeVal = (linkModal.querySelector('input[name="linkShape"]:checked') || {}).value || "straight";
-
-      var curveDir = linkPreset.curveDir || 1;
-      if (shapeVal === "curve") {
-        var curveVal = (linkModal.querySelector('input[name="curveDir"]:checked') || {}).value || "down";
-        curveDir = (curveVal === "up") ? -1 : 1;
-      }
-
-      linkPreset = { end: endVal, shape: shapeVal, curveDir: curveDir };
-      close();
-      done(true);
-    };
-
-    cancelBtn.onclick = function () {
-      close();
-      done(false);
-    };
-
-    linkModal.onclick = function (e) {
-      if (e.target === linkModal) {
-        close();
-        done(false);
-      }
-    };
-  }
-
   function clampToBoard(x, y) {
     if (x < 0) x = 0;
     if (y < 0) y = 0;
@@ -698,20 +578,13 @@
       if (moveMode) setMoveMode(false);
       if (!selectedBoxId) { setStatus("Seleziona un box prima di collegare."); return; }
 
-      linkPreset = linkPreset || { end:"arrow", shape:"straight", curveDir:1 };
-
-      openLinkOptions(function (ok) {
-        if (!ok) { setStatus("Collegamento annullato."); return; }
-
-        linkingFrom = selectedBoxId;
-        btnLink.classList.add("active");
-        var a = document.querySelectorAll(".pop");
-        for (var i=0;i<a.length;i++) {
-          a[i].classList.toggle("linking", a[i].dataset.id === linkingFrom);
-        }
-        setStatus("Modalita collega: clicca un altro box.");
-      });
-
+      linkingFrom = selectedBoxId;
+      btnLink.classList.add("active");
+      var a = document.querySelectorAll(".pop");
+      for (var i=0;i<a.length;i++) {
+        a[i].classList.toggle("linking", a[i].dataset.id === linkingFrom);
+      }
+      setStatus("Modalita collega: clicca un altro box.");
       return;
     } else {
       linkingFrom = null;
@@ -758,14 +631,12 @@
     selectBox(p.id);
   }
 
-  function addLink(from, to, preset) {
+  function addLink(from, to) {
     if (!from || !to || from === to) return;
     for (var i=0;i<links.length;i++) {
       if (links[i].from === from && links[i].to === to) return;
     }
-    var p = preset || linkPreset || { end:"arrow", shape:"straight", curveDir:1 };
-    var curveDir = (typeof p.curveDir === "number") ? p.curveDir : 1;
-    links.push({ id: uid(), from: from, to: to, end: p.end, shape: p.shape, curveDir: curveDir });
+    links.push({ id: uid(), from: from, to: to, end: "arrow", shape: "straight" });
   }
 
   function deleteSelected() {
@@ -845,42 +716,17 @@
       var p1 = edgePoint(A.cx, A.cy, A.hw, A.hh, dx, dy);
       var p2 = edgePoint(B.cx, B.cy, B.hw, B.hh, -dx, -dy);
 
-      var end = l.end || "arrow";
-      var shape = l.shape || "straight";
-
       var color = "#000000";
       var toPop = pops.find(function(pp){ return pp.id === l.to; });
       if (toPop && toPop.color) color = toPop.color;
 
-      var elWire;
+      var elWire = document.createElementNS(NS, "line");
+      elWire.setAttribute("x1", p1.x);
+      elWire.setAttribute("y1", p1.y);
+      elWire.setAttribute("x2", p2.x);
+      elWire.setAttribute("y2", p2.y);
 
-      if (shape === "curve") {
-        var mx = (p1.x + p2.x) / 2;
-        var my = (p1.y + p2.y) / 2;
-
-        var len = Math.hypot(dx, dy) || 1;
-        var nx = -dy / len;
-        var ny =  dx / len;
-
-        var offset = Math.min(70, Math.max(20, len / 4));
-        var dir = (typeof l.curveDir === "number") ? l.curveDir : 1;
-        var cx = mx + nx * offset * dir;
-        var cy = my + ny * offset * dir;
-
-        elWire = document.createElementNS(NS, "path");
-        elWire.setAttribute("fill", "none");
-        elWire.setAttribute("d", "M " + p1.x + " " + p1.y + " Q " + cx + " " + cy + " " + p2.x + " " + p2.y);
-      } else {
-        elWire = document.createElementNS(NS, "line");
-        elWire.setAttribute("x1", p1.x);
-        elWire.setAttribute("y1", p1.y);
-        elWire.setAttribute("x2", p2.x);
-        elWire.setAttribute("y2", p2.y);
-      }
-
-      if (end === "arrow") {
-        elWire.setAttribute("marker-end", "url(#arrow)");
-      }
+      elWire.setAttribute("marker-end", "url(#arrow)");
 
       elWire.classList.add("linkLine");
       elWire.dataset.linkid = l.id;
@@ -895,32 +741,7 @@
         setStatus("Collegamento selezionato.");
       }
 
-      function handleDblClick(e){
-        e.stopPropagation();
-        setLinkMode(false);
-        selectLink(l.id);
-
-        linkPreset = {
-          end: l.end || "arrow",
-          shape: l.shape || "straight",
-          curveDir: (typeof l.curveDir === "number") ? l.curveDir : 1
-        };
-
-        openLinkOptions(function(ok){
-          if (!ok) {
-            setStatus("Modifica collegamento annullata.");
-            return;
-          }
-          l.end = linkPreset.end;
-          l.shape = linkPreset.shape;
-          l.curveDir = linkPreset.curveDir;
-          renderLinks();
-          setStatus("Collegamento aggiornato.");
-        });
-      }
-
       elWire.addEventListener("pointerdown", handlePointerDown);
-      elWire.addEventListener("dblclick", handleDblClick);
 
       svg.appendChild(elWire);
     });
@@ -974,7 +795,7 @@
 
       el.addEventListener("click", function () {
         if (linkingFrom && linkingFrom !== p.id) {
-          addLink(linkingFrom, p.id, linkPreset);
+          addLink(linkingFrom, p.id);
           setLinkMode(false);
           renderLinks();
           setStatus("Collegamento creato.");
@@ -1062,7 +883,7 @@
       '</head>' +
       '<body>' +
       '<h3>Mappa esportata</h3>' +
-      '<p>Importa questo file nell\'app con il pulsante Importa.</p>' +
+      '<p>Importa questo file nell\\'app con il pulsante Importa.</p>' +
       '<textarea id="popplet_export_data" style="display:none;">' +
       state +
       '</textarea>' +
