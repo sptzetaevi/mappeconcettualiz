@@ -10,10 +10,9 @@
     html, body { height:100%; margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; color:var(--ink); }
     #app { height:100%; display:grid; grid-template-rows:auto 1fr; }
 
-    /* HEADER con wrapper interno + maniglia */
     header{
-      position:sticky; top:0; z-index:10;
       background:#fff; border-bottom:1px solid rgba(0,0,0,.08);
+      position:sticky; top:0; z-index:10;
     }
     .headerInner{
       display:flex; gap:10px; flex-wrap:wrap; align-items:center; padding:10px 12px;
@@ -24,7 +23,6 @@
     header.collapsed .headerInner{
       display:none;
     }
-
     .btn{
       border:1px solid rgba(0,0,0,.18);
       background:#fff;
@@ -51,6 +49,7 @@
     }
     .status{ font-size:13px; opacity:.9; white-space:nowrap; }
 
+    /* controlli testo pop */
     .textControls{
       display:flex;
       align-items:center;
@@ -137,7 +136,7 @@
       border:0;
       outline:0;
       resize:none;
-      overflow:visible;      /* <-- niente barre di scorrimento, testo sempre visibile */
+      overflow:visible;   /* <-- qui niente scrollbar interne */
       background:transparent;
       color:inherit;
       font-size:14px;
@@ -255,45 +254,44 @@
     
   <header id="mainHeader">
     <div class="headerInner">
-      <button class="btn" id="btnNew">+ Nuovo pop</button>
-      <button class="btn" id="btnMove">Sposta</button>
-      <button class="btn" id="btnLink">Collega</button>
-      <button class="btn danger" id="btnDelete">Elimina</button>
+    <button class="btn" id="btnNew">+ Nuovo pop</button>
+    <button class="btn" id="btnMove">Sposta</button>
+    <button class="btn" id="btnLink">Collega</button>
+    <button class="btn danger" id="btnDelete">Elimina</button>
 
-      <button class="btn" id="btnPdf">Esporta PDF</button>
-      <button class="btn" id="btnExportJson">Esporta JSON</button>
-      <button class="btn" id="btnExportHtml">Esporta HTML</button>
-      <button class="btn" id="btnImport">Importa</button>
-      <input id="fileInput" type="file" accept=".json,.html" style="display:none" />
+    <button class="btn" id="btnPdf">Esporta PDF</button>
+    <button class="btn" id="btnExportJson">Esporta JSON</button>
+    <button class="btn" id="btnExportHtml">Esporta HTML</button>
+    <button class="btn" id="btnImport">Importa</button>
+    <input id="fileInput" type="file" accept=".json,.html" style="display:none" />
 
-      <button class="btn tiny" id="btnZoomIn">+</button>
-      <button class="btn tiny" id="btnZoomOut">-</button>
+    <button class="btn tiny" id="btnZoomIn">+</button>
+    <button class="btn tiny" id="btnZoomOut">-</button>
 
-      <span class="hint">
-        Doppio click = crea • Trascina = sposta • click linea = seleziona • <kbd>CANC</kbd>/Elimina = elimina • <kbd>ESC</kbd> = annulla
-      </span>
+    <span class="hint">
+      Doppio click = crea • Trascina = sposta • click linea = seleziona (per eliminare) • <kbd>CANC</kbd>/Elimina = elimina • <kbd>ESC</kbd> = annulla
+    </span>
 
-      <!-- CONTROLLI TESTO POP SELEZIONATO -->
-      <div class="textControls">
-        <span>Testo:</span>
-        <input type="color" id="txtColor" value="#000000" disabled>
-        <button class="btn tiny" id="btnSizeSmall" disabled>A-</button>
-        <button class="btn tiny" id="btnSizeLarge" disabled>A+</button>
-        <button class="btn tiny" id="btnBold" disabled><b>B</b></button>
-      </div>
-
-      <span class="status" id="status">Avvio...</span>
-      <span id="mapTitle">MAPPA MENTALE</span>
-
-      <!-- LOGO/LINK ALLA PAGINA PRINCIPALE ANTIMAPPIFICIO -->
-      <a class="homeLogo"
-         href="https://sptzetaevi.github.io/antimappificio/"
-         title="Torna alla pagina principale ANTIMAPPIFICIO">
-        <span class="logoLetters">A&nbsp;M</span>
-      </a>
+    <!-- CONTROLLI TESTO POP SELEZIONATO -->
+    <div class="textControls">
+      <span>Testo:</span>
+      <input type="color" id="txtColor" value="#000000" disabled>
+      <button class="btn tiny" id="btnSizeSmall" disabled>A-</button>
+      <button class="btn tiny" id="btnSizeLarge" disabled>A+</button>
+      <button class="btn tiny" id="btnBold" disabled><b>B</b></button>
     </div>
 
-    <!-- maniglia sempre visibile per mostra/nascondi -->
+    <span class="status" id="status">Avvio...</span>
+    <span id="mapTitle">MAPPA MENTALE</span>
+
+    <!-- LOGO/LINK ALLA PAGINA PRINCIPALE ANTIMAPPIFICIO -->
+    <a class="homeLogo"
+       href="https://sptzetaevi.github.io/antimappificio/"
+       title="Torna alla pagina principale ANTIMAPPIFICIO">
+      <span class="logoLetters">A&nbsp;M</span>
+    </a>
+  
+    </div>
     <div class="headerHandle" id="headerHandle" title="Mostra/nascondi strumenti"></div>
   </header>
 
@@ -317,8 +315,7 @@
   var header = document.getElementById("mainHeader");
   var headerHandle = document.getElementById("headerHandle");
   var headerCollapsed = false;
-
-  if (headerHandle) {
+  if (header && headerHandle) {
     headerHandle.addEventListener("click", function(e){
       e.stopPropagation();
       headerCollapsed = !headerCollapsed;
@@ -883,7 +880,7 @@
       '</head>' +
       '<body>' +
       '<h3>Mappa esportata</h3>' +
-      '<p>Importa questo file nell\\'app con il pulsante Importa.</p>' +
+      '<p>Importa questo file nell\'app con il pulsante Importa.</p>' +
       '<textarea id="popplet_export_data" style="display:none;">' +
       state +
       '</textarea>' +
