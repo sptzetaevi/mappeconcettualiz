@@ -27,12 +27,26 @@
       align-items:center;
       padding:10px 12px;
     }
+
+    /* Maniglia ingrandita con frecce */
     .headerHandle{
       width:100%;
-      height:8px;
+      height:20px;
       background:rgba(0,0,0,.20);
       cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
     }
+    .headerHandle::before{
+      content:"▲ ▼";
+      font-size:11px;
+      letter-spacing:3px;
+      color:#f5f5f5;
+      opacity:0.9;
+    }
+
     header.collapsed .headerInner{
       display:none;
     }
@@ -81,13 +95,14 @@
     }
 
     #board{
-      position:relative; overflow:hidden;
+      position:relative; 
+      overflow:hidden;
       background:
         linear-gradient(var(--bg), var(--bg)),
         repeating-linear-gradient(0deg, transparent, transparent 23px, var(--grid) 24px),
         repeating-linear-gradient(90deg, transparent, transparent 23px, var(--grid) 24px);
+      touch-action:none;
     }
-    #board{ touch-action:none; }
 
     #world{
       position:absolute;
@@ -105,13 +120,13 @@
 
     .pop{
       position:absolute;
-      width:20ch;
+      min-width:8ch;
       max-width:48ch;
       background:#fff;
       border:1px solid rgba(0,0,0,.55);
-      border-radius:14px;
+      border-radius:10px;
       box-shadow:0 8px 24px rgba(0,0,0,.10);
-      padding:10px;
+      padding:6px;
       box-sizing:border-box;
       user-select:none;
       cursor:grab;
@@ -139,7 +154,7 @@
       box-sizing:border-box;
       min-height:1.25em;
       white-space:pre-wrap;
-      word-break:break-word;
+      word-break:normal;
       text-align:center;
     }
 
@@ -166,6 +181,64 @@
       position:absolute; inset:0; pointer-events:none;
       display:flex; align-items:center; justify-content:center;
       font-size:14px; opacity:.55;
+    }
+
+    /* Controlli flottanti agganciati all'area dei POP (in alto) */
+    #controlsRight {
+      position:absolute;
+      top:10px;
+      right:20px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      z-index:20;
+    }
+
+    #controlsLeft {
+      position:absolute;
+      top:10px;
+      left:20px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      z-index:20;
+    }
+
+    #controlsRight .btn,
+    #controlsLeft .btn {
+      pointer-events:auto;
+    }
+
+    /* Ingrandisco i pulsanti flottanti +, - e ✋ */
+    #controlsRight .btn.tiny {
+      padding:8px 12px;
+      font-size:15px;
+      border-radius:12px;
+      min-width:40px;
+    }
+
+    /* Pan flottante ben visibile quando attivo */
+    #btnPan_f.active {
+      background:rgba(0,120,255,.12);
+      border-color:rgba(0,120,255,.8);
+      box-shadow:0 0 0 3px rgba(0,120,255,.25);
+    }
+
+    /* Sposta flottante ben visibile quando attivo */
+    #btnMove_f.active {
+      background:rgba(0,120,255,.12);
+      border-color:rgba(0,120,255,.8);
+      box-shadow:0 0 0 3px rgba(0,120,255,.25);
+    }
+
+    /* Nascondo i bottoni originali nel header,
+       ma li tengo nel DOM per riusare la logica JS */
+    #btnZoomIn,
+    #btnZoomOut,
+    #btnPan,
+    #btnMove,
+    #btnLink {
+      display:none !important;
     }
 
     @media print {
@@ -323,6 +396,18 @@
       <svg id="wires"></svg>
     </div>
     <div class="ghost">Doppio click sullo sfondo per creare un pop</div>
+
+    <!-- Controlli flottanti dentro l'area mappa -->
+    <div id="controlsLeft">
+      <button class="btn" id="btnMove_f">Sposta</button>
+      <button class="btn" id="btnLink_f">Collega</button>
+    </div>
+
+    <div id="controlsRight">
+      <button class="btn tiny" id="btnZoomIn_f">+</button>
+      <button class="btn tiny" id="btnZoomOut_f">-</button>
+      <button class="btn tiny" id="btnPan_f" title="Pan vista">✋</button>
+    </div>
   </div>
 
   <!-- BOX COMANDI DA TASTIERA -->
@@ -378,6 +463,13 @@
   var fileInput = document.getElementById("fileInput");
   var btnZoomIn = document.getElementById("btnZoomIn");
   var btnZoomOut = document.getElementById("btnZoomOut");
+
+  // Bottoni flottanti
+  var btnZoomIn_f  = document.getElementById("btnZoomIn_f");
+  var btnZoomOut_f = document.getElementById("btnZoomOut_f");
+  var btnPan_f     = document.getElementById("btnPan_f");
+  var btnMove_f    = document.getElementById("btnMove_f");
+  var btnLink_f    = document.getElementById("btnLink_f");
 
   function setStatus(msg){ statusEl.textContent = msg; }
   function uid(){ return Math.random().toString(36).slice(2, 10); }
@@ -504,9 +596,11 @@
       setLinkMode(false);
       setPanMode(false);
       btnMove.classList.add("active");
+      if (btnMove_f) btnMove_f.classList.add("active");
       setStatus("Modalita sposta: trascina i box.");
     } else {
       btnMove.classList.remove("active");
+      if (btnMove_f) btnMove_f.classList.remove("active");
       setStatus("Pronto");
     }
 
@@ -520,53 +614,65 @@
     panMode = !!on;
     if (panMode){
       btnPan.classList.add("active");
+      if (btnPan_f) btnPan_f.classList.add("active");
       setStatus("Modalità Pan: trascina lo sfondo per spostarti.");
     } else {
       btnPan.classList.remove("active");
+      if (btnPan_f) btnPan_f.classList.remove("active");
       setStatus("Pronto");
     }
   }
 
-  /* Cresce ma non si restringe */
   function autoGrow(ta, popModel) {
-  // sempre ricalcolata in base al contenuto attuale
-  ta.style.height = "auto";
-  var needed = ta.scrollHeight;
+   ta.style.height = "auto";
 
-  if (popModel) {
-    popModel.height = needed;   // non memorizza più la "massima" ma l'attuale
-  }
+   var computed = window.getComputedStyle(ta);
+   var lineH = parseFloat(computed.lineHeight);
+   if (isNaN(lineH)) {
+     lineH = parseFloat(computed.fontSize) * 1.25 || 18;
+   }
 
-  ta.style.height = needed + "px";
-}
+   var txt = ta.value || "";
+   var needed;
+
+   if (!txt.trim()) {
+     if (popModel && popModel.bigIntro) {
+       needed = lineH * 4;
+     } else {
+       needed = lineH;
+     }
+   } else {
+     needed = ta.scrollHeight;
+     if (needed < lineH) needed = lineH;
+   }
+
+   if (popModel) {
+     popModel.height = needed;
+   }
+
+   ta.style.height = needed + "px";
+ }
 
   function createPop(x, y) {
-  var p = { id: uid(), x: x, y: y, text: "", height: 0 };
-  pops.push(p);
+    var isFirst = (pops.length === 0);
 
-  // ridisegna tutti i POP
-  render();
+    var p = {
+      id: uid(),
+      x: x,
+      y: y,
+      text: "",
+      height: 0,
+      bigIntro: isFirst
+    };
 
-  // messaggio solo quando si crea un nuovo POP
-  setStatus(
-    "Suggerimento: scrivi un concetto chiave senza articoli o aggettivi (✓ NAPOLEONE — ✗ il grande Napoleone)."
-  );
+    pops.push(p);
+    render();
 
-  // 1️⃣ togliamo eventuale selezione/focus dalla domanda focale
-  if (typeof focalTa !== "undefined" && focalTa) {
-    focalTa.blur();
+    setStatus("Suggerimento: scrivi un concetto chiave senza articoli o aggettivi (es. SI: Napoleone — NO: il grande Napoleone).");
+    selectBox(p.id);
+    var el = document.querySelector('[data-id="' + p.id + '"] .body');
+    if (el) el.focus();
   }
-
-  // 2️⃣ selezione "logica" del box
-  selectBox(p.id);
-
-  // 3️⃣ focus reale nel textarea del POP appena creato
-  var el = document.querySelector('[data-id="' + p.id + '"] .body');
-  if (el) {
-    el.focus();
-  }
-}
-
 
   function addLink(from, to) {
     if (!from || !to || from === to) return;
@@ -770,16 +876,15 @@
      el.style.left = p.x + "px";
      el.style.top  = p.y + "px";
 
-     // Mostra il placeholder solo per i primi MAX_PLACEHOLDER_POPS
      var placeholderText =
-    'placeholder="Scrivi un concetto chiave senza articoli o aggettivi (SI: NAPOLEONE — NO: Il grande NAPOLEONE)"';
+      'placeholder="Scrivi un concetto chiave senza articoli o aggettivi (SI: NAPOLEONE — NO: Il grande NAPOLEONE)"';
 
      var placeholderAttr = (idx < MAX_PLACEHOLDER_POPS) ? placeholderText : "";
 
      el.innerHTML =
-      '<textarea class="body" spellcheck="false" ' +
-       placeholderAttr +
-     '></textarea>';
+      '<textarea class="body" spellcheck="false" rows="1" ' +
+      placeholderAttr +
+      '></textarea>';
 
       var ta = el.querySelector(".body");
       ta.value = p.text || "";
@@ -797,6 +902,11 @@
 
       ta.addEventListener("input", function (e) {
         p.text = e.target.value;
+
+        if (p.bigIntro && p.text.trim() !== "") {
+          p.bigIntro = false;
+        }
+
         autoGrow(ta, p);
         renderLinks();
       });
@@ -1129,6 +1239,37 @@
 
   btnZoomIn.addEventListener("click", function(){ zoomAroundCenter(1.15); });
   btnZoomOut.addEventListener("click", function(){ zoomAroundCenter(1/1.15); });
+
+  // Collego i pulsanti flottanti alle stesse azioni dei bottoni originali
+  if (btnZoomIn_f) {
+    btnZoomIn_f.addEventListener("click", function(){
+      btnZoomIn.click();
+    });
+  }
+
+  if (btnZoomOut_f) {
+    btnZoomOut_f.addEventListener("click", function(){
+      btnZoomOut.click();
+    });
+  }
+
+  if (btnPan_f) {
+    btnPan_f.addEventListener("click", function(){
+      btnPan.click();
+    });
+  }
+
+  if (btnMove_f) {
+    btnMove_f.addEventListener("click", function(){
+      btnMove.click();
+    });
+  }
+
+  if (btnLink_f) {
+    btnLink_f.addEventListener("click", function(){
+      btnLink.click();
+    });
+  }
 
   if (focalTa) {
     focalTa.addEventListener("input", function () {
