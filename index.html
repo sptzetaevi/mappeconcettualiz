@@ -30,8 +30,8 @@
     /* Maniglia-cassetto ingrandita con frecce */
     .headerHandle{
       width:100%;
-      height:20px;                       /* piu alta */
-      background:rgba(0,0,0,.18);        /* un po' piu visibile */
+      height:20px;                      
+      background:rgba(0,0,0,.18);       
       cursor:pointer;
       display:flex;
       align-items:center;
@@ -39,7 +39,7 @@
       position:relative;
     }
     .headerHandle::before{
-      content:"▲ ▼";                     /* frecce su/giu */
+      content:"▲ ▼";                    
       font-size:11px;
       letter-spacing:3px;
       color:#f5f5f5;
@@ -117,7 +117,7 @@
 
     .pop{
       position:absolute;
-      min-width:8ch;   /* 👈 NUOVO: si adatta ma non diventa microscopico */
+      min-width:8ch;   
       max-width:48ch;
       background:#fff;
       border:1px solid rgba(0,0,0,.55);
@@ -180,7 +180,6 @@
       font-size:14px; opacity:.55;
     }
 
-    
     /* Controlli flottanti in basso a destra/sinistra */
     #controlsRight {
       position: fixed;
@@ -238,7 +237,7 @@
       display: none !important;
     }
 
-@media print {
+    @media print {
       header { display:none !important; }
       .ghost { display:none !important; }
 
@@ -322,7 +321,7 @@
       border-color: rgba(0,120,255,.6);
     }
 
-    /* POPUP COMANDI DA TASTIERA */
+    /* POPUP COMANDI / SALVATAGGIO */
     .modalOverlay{
       position:fixed; inset:0;
       background:rgba(0,0,0,.35);
@@ -341,6 +340,27 @@
     }
     .modal h3{ margin:0 0 10px 0; font-size:16px; }
     .modal .actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:12px; }
+    .modal .row{ display:flex; flex-wrap:wrap; gap:10px; margin:8px 0; }
+    .modal .row label{ display:flex; align-items:center; gap:6px; font-size:14px; }
+
+    /* Pulsante doppio Salva rapido / Opzioni salvataggio */
+    .saveSplit{
+      display:inline-flex;
+      flex-direction:column;
+      margin:0 6px;
+    }
+    .saveSplit .btn{
+      padding:4px 10px;
+      font-size:12px;
+      border-radius:0;
+    }
+    .saveSplit .btn.saveTop{
+      border-radius:10px 10px 0 0;
+      border-bottom-width:0;
+    }
+    .saveSplit .btn.saveBottom{
+      border-radius:0 0 10px 10px;
+    }
 
   </style>
 </head>
@@ -356,8 +376,17 @@
       <button class="btn danger" id="btnDelete">Elimina</button>
 
       <button class="btn" id="btnPdf">Stampa in PDF</button>
-      <button class="btn" id="btnExportJson">Salva in JSON</button>
-      <button class="btn" id="btnExportHtml">Salva in HTML</button>
+
+      <!-- Pulsante doppio SALVATAGGIO -->
+      <div class="saveSplit">
+        <button class="btn saveTop" id="btnQuickSave">
+          <span>Salva rapido</span>
+        </button>
+        <button class="btn saveBottom" id="btnSaveOptions">
+          <span>Opzioni salvataggio</span>
+        </button>
+      </div>
+
       <button class="btn" id="btnImport">Importa HTML/JSON</button>
       <input id="fileInput" type="file" accept=".json,.html" style="display:none" />
 
@@ -414,7 +443,38 @@
     </div>
   </div>
 
-  <!-- Nuovi controlli flottanti -->
+  <!-- PANNELLO OPZIONI SALVATAGGIO -->
+  <div class="modalOverlay" id="saveOverlay">
+    <div class="modal">
+      <h3>Opzioni di salvataggio</h3>
+      <div class="row">
+        <label>
+          <input type="radio" name="saveFormat" value="json" checked>
+          JSON (dati della mappa)
+        </label>
+        <label>
+          <input type="radio" name="saveFormat" value="html">
+          HTML (pagina con file incorporato)
+        </label>
+      </div>
+      <div class="row">
+        <label style="flex:1; flex-direction:column; align-items:flex-start;">
+          <span>Nome file:</span>
+          <input type="text" id="saveFileName"
+                 style="width:100%; margin-top:4px; padding:4px 6px; font-size:14px; box-sizing:border-box;">
+        </label>
+      </div>
+      <p style="font-size:12px; opacity:0.8; margin:4px 0 0;">
+        Puoi scrivere il nome senza estensione: verrà aggiunta automaticamente (.json o .html).
+      </p>
+      <div class="actions">
+        <button class="btn tiny" id="btnSaveCancel">Annulla</button>
+        <button class="btn tiny" id="btnSaveConfirm">Salva</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nuovi controlli flottanti fissi in basso (come prima) -->
   <div id="controlsLeft">
     <button class="btn" id="btnMove_f">Sposta</button>
     <button class="btn" id="btnLink_f">Collega</button>
@@ -449,8 +509,6 @@
   var btnLink = document.getElementById("btnLink");
   var btnDelete = document.getElementById("btnDelete");
   var btnPdf = document.getElementById("btnPdf");
-  var btnExportJson = document.getElementById("btnExportJson");
-  var btnExportHtml = document.getElementById("btnExportHtml");
   var btnImport = document.getElementById("btnImport");
   var btnMove = document.getElementById("btnMove");
   var btnPan = document.getElementById("btnPan");
@@ -468,11 +526,23 @@
   var btnMove_f    = document.getElementById("btnMove_f");
   var btnLink_f    = document.getElementById("btnLink_f");
 
+  // Nuovi pulsanti salvataggio
+  var btnQuickSave    = document.getElementById("btnQuickSave");
+  var btnSaveOptions  = document.getElementById("btnSaveOptions");
+  var saveOverlay     = document.getElementById("saveOverlay");
+  var saveFileNameInp = document.getElementById("saveFileName");
+  var btnSaveCancel   = document.getElementById("btnSaveCancel");
+  var btnSaveConfirm  = document.getElementById("btnSaveConfirm");
+
+  // stato ultimo salvataggio
+  var lastSaveBaseName = "";
+  var lastSaveFormat   = "json";
+
   function setStatus(msg){ statusEl.textContent = msg; }
   function uid(){ return Math.random().toString(36).slice(2, 10); }
   function boardRect(){ return board.getBoundingClientRect(); }
 
-  var pops = [];   // {id,x,y,text,height}
+  var pops = [];   // {id,x,y,text,height,bigIntro}
   var links = [];  // {id,from,to,label}
   var selectedBoxId = null;
   var selectedLinkId = null;
@@ -480,7 +550,7 @@
   var moveMode = false;
   var panMode = false;
   var focalQuestion = "";
-  
+  var MAX_PLACEHOLDER_POPS = 1;
 
   var camX = 0;
   var camY = 0;
@@ -618,7 +688,7 @@
     if (panMode){
       btnPan.classList.add("active");
       if (btnPan_f) btnPan_f.classList.add("active");
-      setStatus("Modalita Pan: trascina lo sfondo per spostarti.");
+      setStatus("Modalità Pan: trascina lo sfondo per spostarti.");
     } else {
       btnPan.classList.remove("active");
       if (btnPan_f) btnPan_f.classList.remove("active");
@@ -662,7 +732,7 @@
    ta.style.height = needed + "px";
  }
 
-    function createPop(x, y) {
+  function createPop(x, y) {
     // è il primo POP della mappa?
     var isFirst = (pops.length === 0);
 
@@ -683,7 +753,7 @@
     selectBox(p.id);
     var el = document.querySelector('[data-id="' + p.id + '"] .body');
     if (el) el.focus();
-}
+  }
 
   function addLink(from, to) {
     if (!from || !to || from === to) return;
@@ -1008,14 +1078,25 @@
     setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
   }
 
-  function exportJSON() {
-    var blob = new Blob([JSON.stringify(getState(), null, 2)], { type: "application/json;charset=utf-8" });
-    var name = "mappa_" + new Date().toISOString().slice(0,19).split(":").join("-") + ".json";
-    downloadBlob(name, blob);
-    setStatus("Esportato JSON.");
+  // --- VERSIONE ESTESA con nome personalizzato, come in "stampa.html" ---
+  function exportJSON(customBaseName) {
+    var stateStr = JSON.stringify(getState(), null, 2);
+    var blob = new Blob([stateStr], { type: "application/json;charset=utf-8" });
+
+    var filename;
+    if (customBaseName && customBaseName.trim()) {
+      var base = customBaseName.trim();
+      if (!/\.(json)$/i.test(base)) base += ".json";
+      filename = base;
+    } else {
+      filename = "mappa_" + new Date().toISOString().slice(0,19).split(":").join("-") + ".json";
+    }
+
+    downloadBlob(filename, blob);
+    setStatus("Esportato JSON (" + filename + ").");
   }
 
-  function exportHTML() {
+  function exportHTML(customBaseName) {
     var state = JSON.stringify(getState(), null, 2);
 
     var html =
@@ -1036,9 +1117,18 @@
       '</html>';
 
     var blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    var name = "mappa_" + new Date().toISOString().slice(0,19).replace(/:/g,'-') + ".html";
-    downloadBlob(name, blob);
-    setStatus("Esportato HTML.");
+
+    var filename;
+    if (customBaseName && customBaseName.trim()) {
+      var base = customBaseName.trim();
+      if (!/\.(html?|htm)$/i.test(base)) base += ".html";
+      filename = base;
+    } else {
+      filename = "mappa_" + new Date().toISOString().slice(0,19).replace(/:/g,'-') + ".html";
+    }
+
+    downloadBlob(filename, blob);
+    setStatus("Esportato HTML (" + filename + ").");
   }
   
   function parseImportedText(text) {
@@ -1247,8 +1337,6 @@
   });
 
   btnPdf.addEventListener("click", exportPDF);
-  btnExportJson.addEventListener("click", exportJSON);
-  btnExportHtml.addEventListener("click", exportHTML);
   btnImport.addEventListener("click", doImport);
 
   btnZoomIn.addEventListener("click", function(){ zoomAroundCenter(1.15); });
@@ -1279,6 +1367,92 @@
       kbdOverlay.style.display = "none";
     }
   });
+
+  // --- PANNELLO OPZIONI SALVATAGGIO ---
+  function openSaveOverlay() {
+    if (!saveOverlay) return;
+    // preset nome file
+    if (saveFileNameInp) {
+      saveFileNameInp.value = lastSaveBaseName || "";
+    }
+    // preset formato
+    var radios = saveOverlay.querySelectorAll('input[name="saveFormat"]');
+    var current = lastSaveFormat || "json";
+    radios.forEach(function(r){
+      r.checked = (r.value === current);
+    });
+
+    saveOverlay.style.display = "flex";
+    if (saveFileNameInp) {
+      setTimeout(function(){
+        saveFileNameInp.focus();
+        saveFileNameInp.select();
+      }, 50);
+    }
+  }
+
+  function closeSaveOverlay() {
+    if (saveOverlay) saveOverlay.style.display = "none";
+  }
+
+  if (btnSaveOptions) {
+    btnSaveOptions.addEventListener("click", function(){
+      openSaveOverlay();
+    });
+  }
+
+  if (btnSaveCancel) {
+    btnSaveCancel.addEventListener("click", function(){
+      closeSaveOverlay();
+    });
+  }
+
+  if (saveOverlay) {
+    saveOverlay.addEventListener("click", function(e){
+      if (e.target === saveOverlay) {
+        closeSaveOverlay();
+      }
+    });
+  }
+
+  if (btnSaveConfirm) {
+    btnSaveConfirm.addEventListener("click", function(){
+      if (!saveOverlay) return;
+
+      var baseName = (saveFileNameInp && saveFileNameInp.value.trim()) || "";
+      if (!baseName) {
+        baseName = "mappa_concettuale";
+      }
+
+      var radios = saveOverlay.querySelectorAll('input[name="saveFormat"]');
+      var chosen = "json";
+      radios.forEach(function(r){
+        if (r.checked) chosen = r.value;
+      });
+
+      lastSaveBaseName = baseName;
+      lastSaveFormat   = chosen;
+
+      if (chosen === "html") {
+        exportHTML(baseName);
+      } else {
+        exportJSON(baseName);
+      }
+
+      closeSaveOverlay();
+    });
+  }
+
+  // Salva rapido: sempre JSON, riusa il nome dell'ultima volta (se presente)
+  if (btnQuickSave) {
+    btnQuickSave.addEventListener("click", function(){
+      if (lastSaveBaseName) {
+        exportJSON(lastSaveBaseName);
+      } else {
+        exportJSON(null);  // nome con timestamp, come prima
+      }
+    });
+  }
 
   render();
   setStatus("Pronto");
