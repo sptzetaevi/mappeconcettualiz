@@ -5,7 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>m_concettuali</title>
   <style>
-    :root { --bg:#f6f7fb; --grid:rgba(0,0,0,.06); --ink:#1a1a1a; }
+    :root {
+      --bg:#f6f7fb;
+      --grid:rgba(0,0,0,.06);
+      --ink:#1a1a1a;
+      --controls-bottom:20px;  /* distanza base dal fondo per i controlli flottanti */
+    }
 
     html, body { height:100%; margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; color:var(--ink); }
     #app { height:100%; display:grid; grid-template-rows:auto auto 1fr; }
@@ -30,8 +35,8 @@
     /* Maniglia-cassetto ingrandita con frecce */
     .headerHandle{
       width:100%;
-      height:20px;                      
-      background:rgba(0,0,0,.18);       
+      height:20px;
+      background:rgba(0,0,0,.18);
       cursor:pointer;
       display:flex;
       align-items:center;
@@ -39,7 +44,7 @@
       position:relative;
     }
     .headerHandle::before{
-      content:"▲ ▼";                    
+      content:"▲ ▼";
       font-size:11px;
       letter-spacing:3px;
       color:#f5f5f5;
@@ -117,7 +122,7 @@
 
     .pop{
       position:absolute;
-      min-width:8ch;   
+      min-width:8ch;
       max-width:48ch;
       background:#fff;
       border:1px solid rgba(0,0,0,.55);
@@ -183,22 +188,24 @@
     /* Controlli flottanti in basso a destra/sinistra */
     #controlsRight {
       position: fixed;
-      bottom: 20px;
+      bottom: var(--controls-bottom);
       right: 20px;
       display: flex;
       flex-direction: column;
       gap: 8px;
       z-index: 999;
+      pointer-events:none; /* i click passano sotto, tranne sui bottoni */
     }
 
     #controlsLeft {
       position: fixed;
-      bottom: 20px;
+      bottom: var(--controls-bottom);
       left: 20px;
       display: flex;
       flex-direction: column;
       gap: 8px;
       z-index: 999;
+      pointer-events:none;
     }
 
     #controlsRight .btn,
@@ -474,7 +481,7 @@
     </div>
   </div>
 
-  <!-- Nuovi controlli flottanti fissi in basso (come prima) -->
+  <!-- Nuovi controlli flottanti fissi in basso -->
   <div id="controlsLeft">
     <button class="btn" id="btnMove_f">Sposta</button>
     <button class="btn" id="btnLink_f">Collega</button>
@@ -519,7 +526,7 @@
   var btnZoomIn = document.getElementById("btnZoomIn");
   var btnZoomOut = document.getElementById("btnZoomOut");
 
-  // Bottoni flottanti in basso (come nella mappa mentale)
+  // Bottoni flottanti in basso
   var btnZoomIn_f  = document.getElementById("btnZoomIn_f");
   var btnZoomOut_f = document.getElementById("btnZoomOut_f");
   var btnPan_f     = document.getElementById("btnPan_f");
@@ -560,8 +567,8 @@
 
   // Messaggio con suggerimento per il verbo del collegamento
   var linkLabelPromptMsg =
-    "Etichetta del collegamento:\n\n" +
-    "Scrivi qui un verbo che collega i due concetti.\n" +
+    "Etichetta del collegamento:\\n\\n" +
+    "Scrivi qui un verbo che collega i due concetti.\\n" +
     "Nelle mappe concettuali il verbo dovrebbe essere all’indicativo presente (es. considera, organizza, diventa...).";
 
   function applyCamera(){
@@ -692,45 +699,45 @@
     } else {
       btnPan.classList.remove("active");
       if (btnPan_f) btnPan_f.classList.remove("active");
-      setStatus("Pronto");
+      setStatus("Pronto.");
     }
   }
 
   function autoGrow(ta, popModel) {
-   // reset per calcolare bene lo scrollHeight
-   ta.style.height = "auto";
+    // reset per calcolare bene lo scrollHeight
+    ta.style.height = "auto";
 
-   // calcolo dell'altezza di UNA riga
-   var computed = window.getComputedStyle(ta);
-   var lineH = parseFloat(computed.lineHeight);
-   if (isNaN(lineH)) {
-     lineH = parseFloat(computed.fontSize) * 1.25 || 18; // fallback
-   }
+    // calcolo dell'altezza di UNA riga
+    var computed = window.getComputedStyle(ta);
+    var lineH = parseFloat(computed.lineHeight);
+    if (isNaN(lineH)) {
+      lineH = parseFloat(computed.fontSize) * 1.25 || 18; // fallback
+    }
 
-   var txt = ta.value || "";
-   var needed;
+    var txt = ta.value || "";
+    var needed;
 
-   if (!txt.trim()) {
-    // POP vuoto
-    if (popModel && popModel.bigIntro) {
-      // solo il PRIMO pop può nascere a 4 righe
-      needed = lineH * 4;
-     } else {
-       // tutti gli altri (e il primo dopo l’uso) = una riga sola
-       needed = lineH;
-     }
-   } else {
-     // c'è testo → altezza minima che permette di leggere tutto
-     needed = ta.scrollHeight;
-     if (needed < lineH) needed = lineH;
-   }
+    if (!txt.trim()) {
+      // POP vuoto
+      if (popModel && popModel.bigIntro) {
+        // solo il PRIMO pop può nascere a 4 righe
+        needed = lineH * 4;
+      } else {
+        // tutti gli altri (e il primo dopo l’uso) = una riga sola
+        needed = lineH;
+      }
+    } else {
+      // c'è testo → altezza minima che permette di leggere tutto
+      needed = ta.scrollHeight;
+      if (needed < lineH) needed = lineH;
+    }
 
-   if (popModel) {
-     popModel.height = needed;
-   }
+    if (popModel) {
+      popModel.height = needed;
+    }
 
-   ta.style.height = needed + "px";
- }
+    ta.style.height = needed + "px";
+  }
 
   function createPop(x, y) {
     // è il primo POP della mappa?
@@ -951,22 +958,22 @@
     if (ghost) ghost.style.display = pops.length ? "none" : "flex";
 
     pops.forEach(function (p, idx) {
-     var el = document.createElement("div");
-     el.className = "pop";
-     el.dataset.id = p.id;
-     el.style.left = p.x + "px";
-     el.style.top  = p.y + "px";
+      var el = document.createElement("div");
+      el.className = "pop";
+      el.dataset.id = p.id;
+      el.style.left = p.x + "px";
+      el.style.top  = p.y + "px";
 
-     // Mostra il placeholder solo per i primi MAX_PLACEHOLDER_POPS
-     var placeholderText =
-    'placeholder="Scrivi un concetto chiave senza articoli o aggettivi (SI: NAPOLEONE — NO: Il grande NAPOLEONE)"';
+      // Mostra il placeholder solo per i primi MAX_PLACEHOLDER_POPS
+      var placeholderText =
+        'placeholder="Scrivi un concetto chiave senza articoli o aggettivi (SI: NAPOLEONE — NO: Il grande NAPOLEONE)"';
 
-     var placeholderAttr = (idx < MAX_PLACEHOLDER_POPS) ? placeholderText : "";
+      var placeholderAttr = (idx < MAX_PLACEHOLDER_POPS) ? placeholderText : "";
 
-     el.innerHTML =
-      '<textarea class="body" spellcheck="false" rows="1" ' +
-      placeholderAttr +
-      '></textarea>';
+      el.innerHTML =
+        '<textarea class="body" spellcheck="false" rows="1" ' +
+        placeholderAttr +
+        '></textarea>';
 
       var ta = el.querySelector(".body");
       ta.value = p.text || "";
@@ -976,7 +983,21 @@
       if (p.id === selectedBoxId) el.classList.add("selected");
       if (p.id === linkingFrom) el.classList.add("linking");
 
-      ta.addEventListener("focus", function () { selectBox(p.id); });
+      ta.addEventListener("focus", function () {
+        selectBox(p.id);
+
+        // Su smartphone: chiudo l'header e porto il POP al centro dello schermo
+        if (window.innerWidth <= 768) {
+          headerCollapsed = true;
+          header.classList.add("collapsed");
+          try {
+            setTimeout(function(){
+              el.scrollIntoView({ block: "center", behavior: "smooth" });
+            }, 80);
+          } catch (e) {}
+        }
+      });
+
       ta.addEventListener("mousedown", function (e) {
         selectBox(p.id);
         if (linkingFrom && linkingFrom !== p.id) e.preventDefault();
@@ -993,7 +1014,6 @@
         autoGrow(ta, p);
         renderLinks();
       });
-
 
       el.addEventListener("click", function () {
         if (linkingFrom && linkingFrom !== p.id) {
@@ -1456,6 +1476,37 @@
 
   render();
   setStatus("Pronto");
+
+  /* --- ADATTAMENTO CONTROLLI FLOTTANTI CON TASTIERA MOBILE --- */
+  if (window.visualViewport) {
+    var vv = window.visualViewport;
+    var baseBottom = 20;
+
+    function adjustForKeyboard() {
+      // solo su dispositivi piccoli
+      if (window.innerWidth > 900) {
+        document.documentElement.style.setProperty('--controls-bottom', baseBottom + 'px');
+        return;
+      }
+      var delta = window.innerHeight - vv.height;
+      if (delta > 100) {
+        // probabile tastiera aperta
+        document.documentElement.style.setProperty(
+          '--controls-bottom',
+          (delta + baseBottom) + 'px'
+        );
+      } else {
+        document.documentElement.style.setProperty('--controls-bottom', baseBottom + 'px');
+      }
+    }
+
+    vv.addEventListener('resize', adjustForKeyboard);
+    window.addEventListener('orientationchange', function(){
+      setTimeout(adjustForKeyboard, 300);
+    });
+
+    adjustForKeyboard();
+  }
 })();
 </script>
 </body>
